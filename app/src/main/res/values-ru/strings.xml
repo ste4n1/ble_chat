@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ble_chat</string>
+
+    <string name="permission_rationale">Для поиска устройств рядом и обмена сообщениями нужен доступ к Bluetooth.</string>
+    <string name="allow_bluetooth">Разрешить Bluetooth</string>
+
+    <string name="back">Назад</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="saved">Сохранено</string>
+    <string name="delete">Удалить</string>
+    <string name="remove">Убрать</string>
+    <string name="chat">Чат</string>
+    <string name="connect">Подключить</string>
+    <string name="error">ошибка</string>
+
+    <string name="you_label">вы: %1$s</string>
+    <string name="settings">Настройки</string>
+    <string name="find">Найти</string>
+    <string name="no_chats_yet">Пока нет чатов</string>
+    <string name="find_device_hint">Найдите устройство рядом и начните переписку.</string>
+    <string name="open_chat">Открыть чат</string>
+
+    <string name="nearby_devices">Устройства рядом</string>
+    <string name="refresh">Обновить</string>
+    <string name="bluetooth_off">Bluetooth выключен</string>
+    <string name="bluetooth_off_hint">Включите Bluetooth, чтобы находить устройства и принимать сообщения.</string>
+    <string name="turn_on_bluetooth">Включить Bluetooth</string>
+    <string name="searching_devices">Ищем телефоны с ble_chat…</string>
+    <string name="no_devices_found">Телефоны с ble_chat не найдены.\nОткройте приложение на втором телефоне и разрешите быть видимым.</string>
+    <string name="paired_suffix"> · сопряжено</string>
+    <string name="connected_suffix"> · подключено</string>
+
+    <string name="connected">подключено</string>
+    <string name="not_connected">нет соединения</string>
+    <string name="no_connection_device">Нет соединения с устройством</string>
+    <string name="attachment">Вложение</string>
+    <string name="message_hint">Сообщение</string>
+    <string name="send">Отправить</string>
+    <string name="write_first_message">Напишите первое сообщение</string>
+    <string name="connect_to_start_chat">Подключитесь, чтобы начать чат</string>
+    <string name="file">Файл</string>
+    <string name="cancel_send">Отменить</string>
+    <string name="cancel_sending">Отменить отправку</string>
+    <string name="delete_for_me">Удалить у меня</string>
+    <string name="delete_for_everyone">Удалить у всех</string>
+    <string name="status_sending">…</string>
+    <string name="status_sent">✓</string>
+    <string name="status_failed">ошибка</string>
+    <string name="status_cancelled">отменено</string>
+
+    <string name="profile">Профиль</string>
+    <string name="your_name">Ваше имя</string>
+    <string name="appearance">Оформление</string>
+    <string name="theme">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark_gray">Тёмная (серая)</string>
+    <string name="theme_amoled">AMOLED</string>
+    <string name="material_you">Цвета Material You</string>
+    <string name="material_you_subtitle">Автоматически подбираются из обоев системы</string>
+    <string name="interface_color">Цвет интерфейса</string>
+    <string name="chat_background">Фон чата</string>
+    <string name="chat_background_desc">Фон чата</string>
+    <string name="choose_wallpaper">Выбрать обои</string>
+    <string name="change_wallpaper">Сменить обои</string>
+    <string name="visibility">Видимость</string>
+    <string name="auto_visibility">Автоматическая видимость</string>
+    <string name="auto_visibility_subtitle">Виден всем рядом. Выключите, чтобы включать видимость вручную из «Найти»</string>
+    <string name="messages">Сообщения</string>
+    <string name="send_statuses">Статусы отправки</string>
+    <string name="send_statuses_subtitle">Показывать отметки «отправлено» в чате</string>
+    <string name="data">Данные</string>
+    <string name="clear_history">Очистить историю сообщений</string>
+    <string name="clear_history_title">Очистить историю?</string>
+    <string name="clear_history_text">Все сообщения и чаты будут удалены с этого телефона.</string>
+    <string name="about">О приложении</string>
+    <string name="app_version">ble_chat 1.5</string>
+    <string name="about_subtitle">Bluetooth-мессенджер · ste4n1</string>
+
+    <string name="bt_not_supported">Bluetooth не поддерживается</string>
+    <string name="bt_off">Bluetooth выключен</string>
+    <string name="bt_discovery_failed">Не удалось начать поиск устройств</string>
+    <string name="bt_scan_permission">Нет разрешения на поиск устройств</string>
+    <string name="bt_already_connected">Уже подключено</string>
+    <string name="bt_device_not_found">Устройство не найдено</string>
+    <string name="bt_connecting">Подключение к %1$s…</string>
+    <string name="bt_confirm_pairing">Подтвердите сопряжение с %1$s</string>
+    <string name="bt_pairing_permission">Нет разрешения на сопряжение</string>
+    <string name="bt_connect_failed">Не удалось подключиться. Откройте ble_chat на втором телефоне и повторите поиск.</string>
+    <string name="bt_permission_needed">Нужно разрешение Bluetooth</string>
+    <string name="bt_receive_failed">Не удалось запустить приём: %1$s</string>
+    <string name="bt_bonded_access">Нет доступа к сопряжённым устройствам</string>
+    <string name="bt_connected_to">Подключено: %1$s</string>
+    <string name="bt_disconnected">Соединение потеряно</string>
+    <string name="bt_file_save_failed">Не удалось сохранить файл: %1$s</string>
+    <string name="bt_file_read_failed">Не удалось прочитать файл: %1$s</string>
+    <string name="bt_transfer_error">Ошибка передачи файла: %1$s</string>
+    <string name="bt_deleted_local_only">Нет соединения: удалено только у вас</string>
+</resources>

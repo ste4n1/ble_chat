@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ble_chat</string>
+
+    <string name="permission_rationale">Se necesita acceso a Bluetooth para buscar dispositivos cercanos e intercambiar mensajes.</string>
+    <string name="allow_bluetooth">Permitir Bluetooth</string>
+
+    <string name="back">Atrás</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="saved">Guardado</string>
+    <string name="delete">Eliminar</string>
+    <string name="remove">Quitar</string>
+    <string name="chat">Chat</string>
+    <string name="connect">Conectar</string>
+    <string name="error">error</string>
+
+    <string name="you_label">tú: %1$s</string>
+    <string name="settings">Ajustes</string>
+    <string name="find">Buscar</string>
+    <string name="no_chats_yet">Aún no hay chats</string>
+    <string name="find_device_hint">Busca un dispositivo cercano y comienza a chatear.</string>
+    <string name="open_chat">Abrir chat</string>
+
+    <string name="nearby_devices">Dispositivos cercanos</string>
+    <string name="refresh">Actualizar</string>
+    <string name="bluetooth_off">Bluetooth apagado</string>
+    <string name="bluetooth_off_hint">Activa Bluetooth para encontrar dispositivos y recibir mensajes.</string>
+    <string name="turn_on_bluetooth">Activar Bluetooth</string>
+    <string name="searching_devices">Buscando teléfonos con ble_chat…</string>
+    <string name="no_devices_found">No se encontraron teléfonos con ble_chat.\nAbre la app en el otro teléfono y permite que sea visible.</string>
+    <string name="paired_suffix"> · vinculado</string>
+    <string name="connected_suffix"> · conectado</string>
+
+    <string name="connected">conectado</string>
+    <string name="not_connected">sin conexión</string>
+    <string name="no_connection_device">Sin conexión con el dispositivo</string>
+    <string name="attachment">Adjunto</string>
+    <string name="message_hint">Mensaje</string>
+    <string name="send">Enviar</string>
+    <string name="write_first_message">Escribe tu primer mensaje</string>
+    <string name="connect_to_start_chat">Conéctate para comenzar a chatear</string>
+    <string name="file">Archivo</string>
+    <string name="cancel_send">Cancelar</string>
+    <string name="cancel_sending">Cancelar envío</string>
+    <string name="delete_for_me">Eliminar para mí</string>
+    <string name="delete_for_everyone">Eliminar para todos</string>
+    <string name="status_sending">…</string>
+    <string name="status_sent">✓</string>
+    <string name="status_failed">error</string>
+    <string name="status_cancelled">cancelado</string>
+
+    <string name="profile">Perfil</string>
+    <string name="your_name">Tu nombre</string>
+    <string name="appearance">Apariencia</string>
+    <string name="theme">Tema</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark_gray">Oscuro (gris)</string>
+    <string name="theme_amoled">AMOLED</string>
+    <string name="material_you">Colores Material You</string>
+    <string name="material_you_subtitle">Se ajustan automáticamente al fondo del sistema</string>
+    <string name="interface_color">Color de la interfaz</string>
+    <string name="chat_background">Fondo del chat</string>
+    <string name="chat_background_desc">Fondo del chat</string>
+    <string name="choose_wallpaper">Elegir fondo</string>
+    <string name="change_wallpaper">Cambiar fondo</string>
+    <string name="visibility">Visibilidad</string>
+    <string name="auto_visibility">Visibilidad automática</string>
+    <string name="auto_visibility_subtitle">Visible para todos cerca. Desactiva para habilitarla manualmente desde Buscar.</string>
+    <string name="messages">Mensajes</string>
+    <string name="send_statuses">Estados de envío</string>
+    <string name="send_statuses_subtitle">Mostrar marcas de «enviado» en el chat</string>
+    <string name="data">Datos</string>
+    <string name="clear_history">Borrar historial de mensajes</string>
+    <string name="clear_history_title">¿Borrar historial?</string>
+    <string name="clear_history_text">Todos los mensajes y chats se eliminarán de este teléfono.</string>
+    <string name="about">Acerca de</string>
+    <string name="app_version">ble_chat 1.5</string>
+    <string name="about_subtitle">Mensajero Bluetooth · ste4n1</string>
+
+    <string name="bt_not_supported">Bluetooth no es compatible</string>
+    <string name="bt_off">Bluetooth apagado</string>
+    <string name="bt_discovery_failed">No se pudo iniciar la búsqueda de dispositivos</string>
+    <string name="bt_scan_permission">Se requiere permiso de escaneo</string>
+    <string name="bt_already_connected">Ya conectado</string>
+    <string name="bt_device_not_found">Dispositivo no encontrado</string>
+    <string name="bt_connecting">Conectando con %1$s…</string>
+    <string name="bt_confirm_pairing">Confirma el vínculo con %1$s</string>
+    <string name="bt_pairing_permission">Se requiere permiso de vinculación</string>
+    <string name="bt_connect_failed">No se pudo conectar. Abre ble_chat en el otro teléfono e intenta buscar de nuevo.</string>
+    <string name="bt_permission_needed">Se requiere permiso de Bluetooth</string>
+    <string name="bt_receive_failed">No se pudo iniciar la recepción: %1$s</string>
+    <string name="bt_bonded_access">No se puede acceder a los dispositivos vinculados</string>
+    <string name="bt_connected_to">Conectado: %1$s</string>
+    <string name="bt_disconnected">Conexión perdida</string>
+    <string name="bt_file_save_failed">No se pudo guardar el archivo: %1$s</string>
+    <string name="bt_file_read_failed">No se pudo leer el archivo: %1$s</string>
+    <string name="bt_transfer_error">Error de transferencia: %1$s</string>
+    <string name="bt_deleted_local_only">Sin conexión: eliminado solo para ti</string>
+</resources>
