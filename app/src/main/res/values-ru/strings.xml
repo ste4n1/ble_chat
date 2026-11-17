@@ -76,7 +76,7 @@
     <string name="clear_history_title">Очистить историю?</string>
     <string name="clear_history_text">Все сообщения и чаты будут удалены с этого телефона.</string>
     <string name="about">О приложении</string>
-    <string name="app_version">ble_chat 1.5</string>
+    <string name="app_version">ble_chat 1.6</string>
     <string name="about_subtitle">Bluetooth-мессенджер · ste4n1</string>
 
     <string name="bt_not_supported">Bluetooth не поддерживается</string>

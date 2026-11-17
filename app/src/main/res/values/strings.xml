@@ -82,7 +82,7 @@
     <string name="clear_history_title">Clear history?</string>
     <string name="clear_history_text">All messages and chats will be deleted from this phone.</string>
     <string name="about">About</string>
-    <string name="app_version">ble_chat 1.5</string>
+    <string name="app_version">ble_chat 1.6</string>
     <string name="about_subtitle">Bluetooth messenger · ste4n1</string>
 
     <!-- Bluetooth/status strings used in manager -->

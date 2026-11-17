@@ -76,7 +76,7 @@
     <string name="clear_history_title">¿Borrar historial?</string>
     <string name="clear_history_text">Todos los mensajes y chats se eliminarán de este teléfono.</string>
     <string name="about">Acerca de</string>
-    <string name="app_version">ble_chat 1.5</string>
+    <string name="app_version">ble_chat 1.6</string>
     <string name="about_subtitle">Mensajero Bluetooth · ste4n1</string>
 
     <string name="bt_not_supported">Bluetooth no es compatible</string>

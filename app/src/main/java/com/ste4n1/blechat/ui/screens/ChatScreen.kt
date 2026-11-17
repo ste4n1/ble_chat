@@ -299,6 +299,16 @@ private fun MessageBubble(
     var menuOpen by remember { mutableStateOf(false) }
     val canCancel = mine && message.status == "SENDING" && message.type == "FILE"
     val canDeleteForEveryone = mine && message.status != "SENDING"
+    val bubbleText = if (mine) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val bubbleSecondaryText = if (mine) {
+        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Row(
         modifier = Modifier
@@ -314,6 +324,7 @@ private fun MessageBubble(
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
                 },
+                contentColor = bubbleText,
                 tonalElevation = if (mine) 1.dp else 0.dp,
                 modifier = Modifier
                     .widthIn(max = 320.dp)
@@ -348,13 +359,14 @@ private fun MessageBubble(
                                 Text(
                                     text = message.text ?: stringResource(R.string.file),
                                     style = MaterialTheme.typography.bodyMedium,
+                                    color = bubbleText,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = formatSize(message.fileSize),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = bubbleSecondaryText
                                 )
                             }
                             if (canCancel) {
@@ -387,7 +399,8 @@ private fun MessageBubble(
                     } else {
                         Text(
                             text = message.text ?: "",
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = bubbleText
                         )
                     }
                     Spacer(Modifier.height(2.dp))
@@ -398,7 +411,7 @@ private fun MessageBubble(
                         Text(
                             text = formatTime(message.timestamp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = bubbleSecondaryText
                         )
                         if (mine && showStatus) {
                             Spacer(Modifier.width(6.dp))
@@ -408,7 +421,7 @@ private fun MessageBubble(
                                 color = if (message.status == "FAILED" || message.status == "CANCELLED") {
                                     MaterialTheme.colorScheme.error
                                 } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                    bubbleSecondaryText
                                 }
                             )
                         }
