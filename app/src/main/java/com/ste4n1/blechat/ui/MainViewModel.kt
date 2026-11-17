@@ -78,7 +78,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearBackground() = settings.clearBackground()
 
     fun clearHistory() {
-        viewModelScope.launch { repository.clearHistory() }
+        viewModelScope.launch { runCatching { repository.clearHistory() } }
     }
 
     fun bluetoothEnabled(): Boolean = manager.isBluetoothEnabled()

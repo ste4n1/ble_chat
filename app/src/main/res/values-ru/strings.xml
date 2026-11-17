@@ -76,7 +76,7 @@
     <string name="clear_history_title">Очистить историю?</string>
     <string name="clear_history_text">Все сообщения и чаты будут удалены с этого телефона.</string>
     <string name="about">О приложении</string>
-    <string name="app_version">ble_chat 1.6</string>
+    <string name="app_version">ble_chat 1.6.1</string>
     <string name="about_subtitle">Bluetooth-мессенджер · ste4n1</string>
 
     <string name="bt_not_supported">Bluetooth не поддерживается</string>
@@ -98,4 +98,5 @@
     <string name="bt_file_read_failed">Не удалось прочитать файл: %1$s</string>
     <string name="bt_transfer_error">Ошибка передачи файла: %1$s</string>
     <string name="bt_deleted_local_only">Нет соединения: удалено только у вас</string>
+    <string name="file_open_failed">Не удалось открыть файл</string>
 </resources>

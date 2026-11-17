@@ -18,7 +18,7 @@ class BleChatApp : Application() {
 
 class AppContainer(context: Context) {
     private val database = AppDatabase.get(context)
-    val repository = ChatRepository(database.chatDao())
+    val repository = ChatRepository(database.chatDao(), context.applicationContext)
     val settings = SettingsRepository(context)
     val chatManager = ChatManager(context, repository)
 }

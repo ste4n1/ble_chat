@@ -3,6 +3,7 @@ package com.ste4n1.blechat.ui
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import com.ste4n1.blechat.R
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -35,11 +36,17 @@ fun formatSize(bytes: Long?): String {
     }
 }
 
-fun openFile(context: Context, path: String?, mime: String?) {
-    if (path.isNullOrBlank()) return
-    try {
+fun openFile(context: Context, path: String?, mime: String?): Boolean {
+    if (path.isNullOrBlank()) return false
+    return try {
         val file = File(path)
-        if (!file.exists()) return
+        val canonical = file.canonicalPath
+        val roots = listOf("sent", "received").mapNotNull { name ->
+            runCatching { File(context.filesDir, name).canonicalPath }.getOrNull()
+        }
+        if (!file.exists() || !file.isFile || roots.none { canonical.startsWith(it + File.separator) }) {
+            return false
+        }
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
@@ -49,7 +56,9 @@ fun openFile(context: Context, path: String?, mime: String?) {
             setDataAndType(uri, mime ?: "*/*")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(intent)
+        context.startActivity(Intent.createChooser(intent, context.getString(R.string.file)))
+        true
     } catch (_: Exception) {
+        false
     }
 }

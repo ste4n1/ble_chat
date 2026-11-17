@@ -2,6 +2,7 @@ package com.ste4n1.blechat.data
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,10 +59,33 @@ class SettingsRepository(context: Context) {
 
     suspend fun setBackgroundFromUri(uri: Uri): Boolean = withContext(Dispatchers.IO) {
         try {
-            val file = File(appContext.filesDir, "chat_background.img")
+            val declared = try {
+                appContext.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val sizeIdx = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (sizeIdx >= 0 && cursor.moveToFirst() && !cursor.isNull(sizeIdx)) {
+                        cursor.getLong(sizeIdx)
+                    } else {
+                        0L
+                    }
+                }
+            } catch (_: Exception) {
+                0L
+            } ?: 0L
+            if (declared > MAX_BACKGROUND_SIZE) return@withContext false
+            val file = File(appContext.filesDir, BACKGROUND_FILE)
             val input = appContext.contentResolver.openInputStream(uri) ?: return@withContext false
+            var copied = 0L
+            val buffer = ByteArray(16 * 1024)
             input.use { source ->
-                file.outputStream().use { target -> source.copyTo(target) }
+                file.outputStream().use { target ->
+                    while (true) {
+                        val read = source.read(buffer)
+                        if (read <= 0) break
+                        copied += read
+                        if (copied > MAX_BACKGROUND_SIZE) throw java.io.IOException("Background too large")
+                        target.write(buffer, 0, read)
+                    }
+                }
             }
             prefs.edit().putString(KEY_BACKGROUND, file.absolutePath).apply()
             _chatBackground.value = file.absolutePath
@@ -72,8 +96,12 @@ class SettingsRepository(context: Context) {
     }
 
     fun clearBackground() {
+        val target = File(appContext.filesDir, BACKGROUND_FILE)
+        val targetPath = runCatching { target.canonicalPath }.getOrNull()
         _chatBackground.value?.let { path ->
-            runCatching { File(path).delete() }
+            if (targetPath != null && runCatching { File(path).canonicalPath }.getOrNull() == targetPath) {
+                runCatching { target.delete() }
+            }
         }
         prefs.edit().remove(KEY_BACKGROUND).apply()
         _chatBackground.value = null
@@ -95,5 +123,7 @@ class SettingsRepository(context: Context) {
         const val THEME_AMOLED = "amoled"
 
         const val DEFAULT_COLOR = 0xFF6750A4L
+        private const val BACKGROUND_FILE = "chat_background.img"
+        private const val MAX_BACKGROUND_SIZE = 10L * 1024 * 1024
     }
 }

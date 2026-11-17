@@ -1,5 +1,6 @@
 package com.ste4n1.blechat.bluetooth
 
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -8,6 +9,12 @@ data class Frame(val type: Int, val payload: ByteArray)
 object FrameCodec {
 
     fun write(out: OutputStream, type: Int, payload: ByteArray) {
+        if (type < BtConstants.TYPE_HELLO || type > BtConstants.TYPE_DELETE) {
+            throw IOException("Invalid frame type")
+        }
+        if (payload.size > BtConstants.MAX_FRAME_SIZE) {
+            throw IOException("Frame too large")
+        }
         val header = ByteArray(5)
         header[0] = type.toByte()
         header[1] = (payload.size ushr 24).toByte()

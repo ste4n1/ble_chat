@@ -82,7 +82,7 @@
     <string name="clear_history_title">Clear history?</string>
     <string name="clear_history_text">All messages and chats will be deleted from this phone.</string>
     <string name="about">About</string>
-    <string name="app_version">ble_chat 1.6</string>
+    <string name="app_version">ble_chat 1.6.1</string>
     <string name="about_subtitle">Bluetooth messenger · ste4n1</string>
 
     <!-- Bluetooth/status strings used in manager -->
@@ -105,4 +105,5 @@
     <string name="bt_file_read_failed">Failed to read file: %1$s</string>
     <string name="bt_transfer_error">File transfer error: %1$s</string>
     <string name="bt_deleted_local_only">No connection: deleted only for you</string>
+    <string name="file_open_failed">Could not open this file</string>
 </resources>

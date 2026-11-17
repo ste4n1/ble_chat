@@ -23,14 +23,27 @@ interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: MessageEntity)
 
-    @Query("UPDATE messages SET status = :status WHERE id = :id")
-    suspend fun updateStatus(id: String, status: String)
+    @Query("UPDATE messages SET status = :status WHERE id = :id AND status = 'SENDING'")
+    suspend fun updateSendingStatus(id: String, status: String)
 
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun deleteMessage(id: String)
 
+    @Query(
+        "DELETE FROM messages WHERE id = :id " +
+            "AND conversationId = :conversationId AND senderId IN (:senderIds)"
+    )
+    suspend fun deleteMessageInConversation(
+        id: String,
+        conversationId: String,
+        senderIds: List<String>
+    )
+
     @Query("UPDATE conversations SET updatedAt = :time WHERE id = :id")
     suspend fun touchConversation(id: String, time: Long)
+
+    @Query("SELECT filePath FROM messages WHERE filePath IS NOT NULL")
+    suspend fun getFilePaths(): List<String>
 
     @Query("DELETE FROM messages")
     suspend fun clearMessages()

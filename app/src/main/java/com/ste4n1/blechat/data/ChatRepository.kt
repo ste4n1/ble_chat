@@ -1,8 +1,12 @@
 package com.ste4n1.blechat.data
 
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import java.io.File
 
-class ChatRepository(private val dao: ChatDao) {
+class ChatRepository(private val dao: ChatDao, private val context: Context) {
 
     fun conversations(): Flow<List<ConversationEntity>> = dao.observeConversations()
 
@@ -26,16 +30,34 @@ class ChatRepository(private val dao: ChatDao) {
         dao.touchConversation(message.conversationId, message.timestamp)
     }
 
-    suspend fun updateStatus(messageId: String, status: String) {
-        dao.updateStatus(messageId, status)
+    suspend fun updateSendingStatus(messageId: String, status: String) {
+        dao.updateSendingStatus(messageId, status)
     }
 
     suspend fun deleteMessage(messageId: String) {
         dao.deleteMessage(messageId)
     }
 
-    suspend fun clearHistory() {
+    suspend fun deleteMessageInConversation(
+        messageId: String,
+        conversationId: String,
+        senderIds: List<String>
+    ) {
+        dao.deleteMessageInConversation(messageId, conversationId, senderIds)
+    }
+
+    suspend fun clearHistory() = withContext(Dispatchers.IO) {
+        val paths = dao.getFilePaths()
         dao.clearMessages()
         dao.clearConversations()
+        val roots = listOf("sent", "received").mapNotNull { name ->
+            runCatching { File(context.filesDir, name).canonicalPath }.getOrNull()
+        }
+        paths.forEach { path ->
+            val canonical = runCatching { File(path).canonicalPath }.getOrNull() ?: return@forEach
+            if (roots.any { canonical.startsWith(it + File.separator) }) {
+                runCatching { File(path).delete() }
+            }
+        }
     }
 }

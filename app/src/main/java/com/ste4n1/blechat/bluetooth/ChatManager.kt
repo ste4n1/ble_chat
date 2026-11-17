@@ -13,11 +13,11 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
-import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.ste4n1.blechat.R
 import com.ste4n1.blechat.data.ChatRepository
 import com.ste4n1.blechat.data.MessageEntity
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.File
@@ -35,7 +36,6 @@ import java.io.OutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 class ChatManager(
@@ -45,18 +45,15 @@ class ChatManager(
     private val appContext = context.applicationContext
     private val adapter: BluetoothAdapter? =
         (appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val prefs = appContext.getSharedPreferences("blechat", Context.MODE_PRIVATE)
+    private val myAppId: String = prefs.getString("device_id", null)
+        ?: UUID.randomUUID().toString().also { id ->
+            prefs.edit().putString("device_id", id).apply()
+        }
 
     private companion object {
         const val AUTO_SEARCH_MS = 10 * 60 * 1000L
     }
-
-    private val myAppId: String = Settings.Secure.getString(
-        appContext.contentResolver,
-        Settings.Secure.ANDROID_ID
-    ) ?: UUID.randomUUID().toString()
-
-    private val prefs = appContext.getSharedPreferences("blechat", Context.MODE_PRIVATE)
     private val _myName = MutableStateFlow(
         prefs.getString("display_name", null)
             ?: Build.MODEL?.takeIf { it.isNotBlank() }
@@ -80,10 +77,19 @@ class ChatManager(
     private val _status = MutableStateFlow("")
     val status: StateFlow<String> = _status.asStateFlow()
 
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, error ->
+            _status.value = appContext.getString(
+                R.string.bt_transfer_error,
+                error.message ?: ""
+            )
+        }
+    )
+
     private val knownDevices = ConcurrentHashMap<String, BtDevice>()
     private val allConnections = CopyOnWriteArrayList<PeerConnection>()
     private val activeByPeer = ConcurrentHashMap<String, PeerConnection>()
-    private val incomingFiles = ConcurrentHashMap<String, IncomingFile>()
+    private val incomingFiles = ConcurrentHashMap<PeerConnection, IncomingFile>()
     private val outgoingJobs = ConcurrentHashMap<String, Job>()
     private val cancelledOutgoing = ConcurrentHashMap.newKeySet<String>()
 
@@ -96,6 +102,7 @@ class ChatManager(
     private var serverSocket: BluetoothServerSocket? = null
 
     private val connecting = ConcurrentHashMap.newKeySet<String>()
+    private val rescanLock = Any()
     private var rescanJob: Job? = null
 
     @Volatile
@@ -265,22 +272,26 @@ class ChatManager(
         socket: BluetoothSocket,
         timeoutMs: Long = 8_000L
     ): Boolean {
-        val finished = AtomicBoolean(false)
+        val lock = Any()
+        var connected = false
         val watchdog = thread(name = "blechat-connect-timeout", isDaemon = true) {
             try {
                 Thread.sleep(timeoutMs)
             } catch (_: InterruptedException) {
                 return@thread
             }
-            if (!finished.get()) closeQuietly(socket)
+            synchronized(lock) {
+                if (!connected) closeQuietly(socket)
+            }
         }
         return try {
             socket.connect()
+            synchronized(lock) { connected = true }
             true
         } catch (e: Exception) {
             false
         } finally {
-            finished.set(true)
+            synchronized(lock) { connected = true }
             watchdog.interrupt()
         }
     }
@@ -329,7 +340,7 @@ class ChatManager(
                     val socket = try {
                         server.accept()
                     } catch (e: IOException) {
-                        null
+                        break
                     }
                     if (socket != null) {
                         attachSocket(socket, outgoing = false)
@@ -342,9 +353,17 @@ class ChatManager(
                 _status.value = appContext.getString(R.string.bt_receive_failed, e.message ?: "")
                 serverRunning = false
             } finally {
+                serverSocket = null
+                serverRunning = false
                 try {
                     server?.close()
                 } catch (_: Exception) {
+                }
+                if (adapter?.isEnabled == true) {
+                    scope.launch {
+                        delay(2_000)
+                        if (adapter?.isEnabled == true && !serverRunning) startServer()
+                    }
                 }
             }
         }
@@ -493,9 +512,11 @@ class ChatManager(
         peersPrefs.getStringSet("peers", emptySet())?.toSet() ?: emptySet()
 
     private fun rememberPeer(address: String) {
-        val peers = knownPeers().toMutableSet()
-        if (peers.add(address)) {
-            peersPrefs.edit().putStringSet("peers", peers).apply()
+        synchronized(peersPrefs) {
+            val peers = knownPeers().toMutableSet()
+            if (peers.add(address)) {
+                peersPrefs.edit().putStringSet("peers", peers).apply()
+            }
         }
     }
 
@@ -540,14 +561,16 @@ class ChatManager(
     }
 
     private fun scheduleRescan() {
-        if (System.currentTimeMillis() > autoSearchUntil) return
-        if (rescanJob?.isActive == true) return
-        rescanJob = scope.launch {
-            delay(4_000)
-            if (System.currentTimeMillis() > autoSearchUntil) return@launch
-            if (activeByPeer.isNotEmpty() || connecting.isNotEmpty()) return@launch
-            if (adapter?.isEnabled != true) return@launch
-            startDiscovery()
+        synchronized(rescanLock) {
+            if (System.currentTimeMillis() > autoSearchUntil) return
+            if (rescanJob?.isActive == true) return
+            rescanJob = scope.launch {
+                delay(4_000)
+                if (System.currentTimeMillis() > autoSearchUntil) return@launch
+                if (activeByPeer.isNotEmpty() || connecting.isNotEmpty()) return@launch
+                if (adapter?.isEnabled != true) return@launch
+                startDiscovery()
+            }
         }
     }
 
@@ -591,7 +614,6 @@ class ChatManager(
         allConnections.add(conn)
         conn.start()
         sendHello(conn)
-        activeByPeer[peerMac] = conn
         addKnownDevice(
             peerMac,
             displayName(safePeerName(socket)),
@@ -632,13 +654,12 @@ class ChatManager(
 
     private fun onDisconnected(conn: PeerConnection) {
         allConnections.remove(conn)
+        cleanupIncoming(conn, deleteFile = true)
         val active = activeByPeer[conn.peerMac]
-        if (active === conn) {
-            activeByPeer.remove(conn.peerMac)
-            electConnection(conn.peerMac)
-            if (!activeByPeer.containsKey(conn.peerMac)) {
-                _status.value = appContext.getString(R.string.bt_disconnected)
-            }
+        if (active === conn) activeByPeer.remove(conn.peerMac)
+        electConnection(conn.peerMac)
+        if (active === conn && !activeByPeer.containsKey(conn.peerMac)) {
+            _status.value = appContext.getString(R.string.bt_disconnected)
         }
         publishDevices()
     }
@@ -663,11 +684,12 @@ class ChatManager(
             BtConstants.TYPE_TEXT -> {
                 val json = parseJson(frame) ?: return
                 val text = json.optString("text")
-                if (text.isBlank()) return
-                val msgId = json.optString("msgId").ifBlank { UUID.randomUUID().toString() }
-                val timestamp = json.optLong("timestamp", System.currentTimeMillis())
+                if (text.isBlank() || text.length > BtConstants.MAX_FRAME_SIZE) return
+                val msgId = validRemoteId(json.optString("msgId")) ?: UUID.randomUUID().toString()
+                val timestamp = safeTimestamp(json.optLong("timestamp", System.currentTimeMillis()))
                 val senderName = json.optString("senderName")
                     .ifBlank { conn.peerName ?: conn.peerMac }
+                    .take(80)
                 val senderId = conn.peerAppId ?: conn.peerMac
                 scope.launch {
                     repository.ensureConversation(
@@ -695,19 +717,26 @@ class ChatManager(
 
             BtConstants.TYPE_FILE_START -> {
                 val json = parseJson(frame) ?: return
-                val msgId = json.optString("msgId").ifBlank { UUID.randomUUID().toString() }
-                val name = json.optString("name").ifBlank { "file" }
-                val mime = json.optString("mime").ifBlank { "application/octet-stream" }
+                val msgId = validRemoteId(json.optString("msgId")) ?: UUID.randomUUID().toString()
+                val name = json.optString("name").ifBlank { "file" }.take(120)
+                val mime = json.optString("mime").ifBlank { "application/octet-stream" }.take(100)
                 val size = json.optLong("size", 0L)
-                val timestamp = json.optLong("timestamp", System.currentTimeMillis())
+                if (size < 0 || size > BtConstants.MAX_TRANSFER_SIZE) {
+                    cleanupIncoming(conn, deleteFile = true)
+                    _status.value = appContext.getString(R.string.bt_file_save_failed, "invalid size")
+                    return
+                }
+                val timestamp = safeTimestamp(json.optLong("timestamp", System.currentTimeMillis()))
                 val senderName = json.optString("senderName")
                     .ifBlank { conn.peerName ?: conn.peerMac }
+                    .take(80)
+                cleanupIncoming(conn, deleteFile = true)
                 val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(80)
                     .ifBlank { "file" }
                 val dir = File(appContext.filesDir, "received").apply { mkdirs() }
-                val file = File(dir, "${msgId}_$safe")
+                val file = File(dir, "${UUID.randomUUID()}_$safe")
                 try {
-                    incomingFiles[conn.peerMac] = IncomingFile(
+                    incomingFiles[conn] = IncomingFile(
                         msgId = msgId,
                         name = name,
                         mime = mime,
@@ -726,7 +755,14 @@ class ChatManager(
             }
 
             BtConstants.TYPE_FILE_CHUNK -> {
-                val incoming = incomingFiles[conn.peerMac] ?: return
+                val incoming = incomingFiles[conn] ?: return
+                if (incoming.received + frame.payload.size > BtConstants.MAX_TRANSFER_SIZE ||
+                    (incoming.size > 0 && incoming.received + frame.payload.size > incoming.size)
+                ) {
+                    cleanupIncoming(conn, deleteFile = true)
+                    _status.value = appContext.getString(R.string.bt_transfer_error, "file too large")
+                    return
+                }
                 try {
                     incoming.out.write(frame.payload)
                     incoming.received += frame.payload.size
@@ -735,22 +771,24 @@ class ChatManager(
                     } else {
                         0f
                     }
-                    _transferProgress.value =
-                        _transferProgress.value + (incoming.msgId to progress)
+                    _transferProgress.update { it + (incoming.msgId to progress) }
                 } catch (e: Exception) {
-                    incomingFiles.remove(conn.peerMac)
-                    try {
-                        incoming.out.close()
-                    } catch (_: Exception) {
-                    }
+                    cleanupIncoming(conn, deleteFile = true)
                 }
             }
 
             BtConstants.TYPE_FILE_END -> {
-                val incoming = incomingFiles.remove(conn.peerMac) ?: return
+                val incoming = incomingFiles[conn] ?: return
+                incomingFiles.remove(conn)
                 try {
                     incoming.out.close()
                 } catch (_: Exception) {
+                }
+                if (incoming.size > 0 && incoming.received != incoming.size) {
+                    runCatching { incoming.file.delete() }
+                    _transferProgress.update { it - incoming.msgId }
+                    _status.value = appContext.getString(R.string.bt_transfer_error, "incomplete file")
+                    return
                 }
                 val finalSize = if (incoming.size > 0) incoming.size else incoming.received
                 scope.launch {
@@ -771,14 +809,21 @@ class ChatManager(
                             timestamp = incoming.timestamp
                         )
                     )
-                    _transferProgress.value = _transferProgress.value - incoming.msgId
+                    _transferProgress.update { it - incoming.msgId }
                 }
             }
 
             BtConstants.TYPE_DELETE -> {
                 val json = parseJson(frame) ?: return
-                val msgId = json.optString("msgId").ifBlank { return }
-                scope.launch { repository.deleteMessage(msgId) }
+                val msgId = validRemoteId(json.optString("msgId")) ?: return
+                val senderId = conn.peerAppId ?: conn.peerMac
+                scope.launch {
+                    repository.deleteMessageInConversation(
+                        msgId,
+                        conn.peerMac,
+                        listOf(senderId, conn.peerMac)
+                    )
+                }
             }
         }
     }
@@ -815,7 +860,7 @@ class ChatManager(
                     put("senderName", currentName)
                 }.toString().toByteArray(Charsets.UTF_8)
                 val ok = conn != null && conn.send(BtConstants.TYPE_TEXT, payload)
-                repository.updateStatus(
+                repository.updateSendingStatus(
                     msgId,
                     if (cancelledOutgoing.contains(msgId)) "CANCELLED"
                     else if (ok) "SENT" else "FAILED"
@@ -832,7 +877,7 @@ class ChatManager(
         val msgId = UUID.randomUUID().toString()
         val job = scope.launch {
             try {
-                val conn = activeByPeer[peerMac]
+                var conn = activeByPeer[peerMac]
                 val peerName = knownDevices[peerMac]?.name ?: peerMac
                 val resolver = appContext.contentResolver
                 var displayName = "file"
@@ -857,6 +902,10 @@ class ChatManager(
                     }
                 } catch (_: Exception) {
                 }
+                if (declaredSize > BtConstants.MAX_TRANSFER_SIZE) {
+                    _status.value = appContext.getString(R.string.bt_transfer_error, "file too large")
+                    return@launch
+                }
                 val timestamp = System.currentTimeMillis()
                 val safe = displayName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(80)
                     .ifBlank { "file" }
@@ -867,9 +916,20 @@ class ChatManager(
                 try {
                     resolver.openInputStream(uri)?.use { input ->
                         localFile.outputStream().use { output ->
-                            input.copyTo(output, BtConstants.CHUNK_SIZE)
+                            val buffer = ByteArray(BtConstants.CHUNK_SIZE)
+                            var copied = 0L
+                            while (true) {
+                                if (cancelledOutgoing.contains(msgId)) throw IOException("CANCELLED")
+                                val read = input.read(buffer)
+                                if (read <= 0) break
+                                copied += read
+                                if (copied > BtConstants.MAX_TRANSFER_SIZE) {
+                                    throw IOException("File too large")
+                                }
+                                output.write(buffer, 0, read)
+                            }
                         }
-                    }
+                    } ?: throw IOException("File not found")
                 } catch (e: Exception) {
                     _status.value = appContext.getString(R.string.bt_file_read_failed, e.message ?: "")
                     return@launch
@@ -892,8 +952,10 @@ class ChatManager(
                         timestamp = timestamp
                     )
                 )
+                val active = activeByPeer[peerMac]
+                if (active != null && active.isAlive()) conn = active
                 if (conn == null || !conn.isAlive()) {
-                    repository.updateStatus(msgId, "FAILED")
+                    repository.updateSendingStatus(msgId, "FAILED")
                     return@launch
                 }
                 val start = JSONObject().apply {
@@ -905,7 +967,7 @@ class ChatManager(
                     put("senderName", currentName)
                 }.toString().toByteArray(Charsets.UTF_8)
                 if (!conn.send(BtConstants.TYPE_FILE_START, start)) {
-                    repository.updateStatus(msgId, "FAILED")
+                    repository.updateSendingStatus(msgId, "FAILED")
                     return@launch
                 }
                 localFile.inputStream().use { input ->
@@ -925,19 +987,18 @@ class ChatManager(
                         } else {
                             0f
                         }
-                        _transferProgress.value =
-                            _transferProgress.value + (msgId to progress)
+                        _transferProgress.update { it + (msgId to progress) }
                     }
                 }
                 if (cancelledOutgoing.contains(msgId)) throw IOException("CANCELLED")
                 conn.send(BtConstants.TYPE_FILE_END, ByteArray(0))
-                repository.updateStatus(msgId, "SENT")
+                repository.updateSendingStatus(msgId, "SENT")
             } catch (e: Exception) {
                 val cancelled = cancelledOutgoing.contains(msgId) || e.message == "CANCELLED"
-                repository.updateStatus(msgId, if (cancelled) "CANCELLED" else "FAILED")
+                repository.updateSendingStatus(msgId, if (cancelled) "CANCELLED" else "FAILED")
                 if (!cancelled) _status.value = appContext.getString(R.string.bt_transfer_error, e.message ?: "")
             } finally {
-                _transferProgress.value = _transferProgress.value - msgId
+                _transferProgress.update { it - msgId }
                 outgoingJobs.remove(msgId)
                 cancelledOutgoing.remove(msgId)
             }
@@ -948,7 +1009,7 @@ class ChatManager(
     fun cancelSend(messageId: String) {
         cancelledOutgoing.add(messageId)
         outgoingJobs[messageId]?.cancel()
-        scope.launch { repository.updateStatus(messageId, "CANCELLED") }
+        scope.launch { repository.updateSendingStatus(messageId, "CANCELLED") }
     }
 
     fun deleteMessage(messageId: String) {
@@ -957,7 +1018,12 @@ class ChatManager(
 
     fun deleteMessageForEveryone(peerMac: String, messageId: String) {
         scope.launch {
-            repository.deleteMessage(messageId)
+            val peerId = activeByPeer[peerMac]?.peerAppId ?: peerMac
+            repository.deleteMessageInConversation(
+                messageId,
+                peerMac,
+                listOf(myAppId, peerId)
+            )
             val conn = activeByPeer[peerMac]
             if (conn != null && conn.isAlive()) {
                 val payload = JSONObject().apply {
@@ -968,6 +1034,28 @@ class ChatManager(
                 _status.value = appContext.getString(R.string.bt_deleted_local_only)
             }
         }
+    }
+
+    private fun validRemoteId(raw: String): String? = raw.takeIf { id ->
+        id.length in 1..64 && id.all { c ->
+            c in 'A'..'Z' || c in 'a'..'z' || c in '0'..'9' || c == '-' || c == '_'
+        }
+    }
+
+    private fun safeTimestamp(value: Long): Long {
+        val now = System.currentTimeMillis()
+        return value.takeIf { it in (now - 365L * 24 * 60 * 60 * 1000)..(now + 24 * 60 * 60 * 1000) }
+            ?: now
+    }
+
+    private fun cleanupIncoming(conn: PeerConnection, deleteFile: Boolean) {
+        val incoming = incomingFiles.remove(conn) ?: return
+        try {
+            incoming.out.close()
+        } catch (_: Exception) {
+        }
+        if (deleteFile) runCatching { incoming.file.delete() }
+        _transferProgress.update { it - incoming.msgId }
     }
 
     private fun parseJson(frame: Frame): JSONObject? = try {

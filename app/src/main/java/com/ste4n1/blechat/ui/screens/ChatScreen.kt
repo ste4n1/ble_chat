@@ -1,5 +1,6 @@
 package com.ste4n1.blechat.ui.screens
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -104,6 +105,7 @@ fun ChatScreen(
     val status by vm.status.collectAsStateWithLifecycle()
     val backgroundPath by vm.chatBackground.collectAsStateWithLifecycle()
     val showStatus by vm.showStatus.collectAsStateWithLifecycle()
+    val fileOpenFailed = stringResource(R.string.file_open_failed)
     val isConnected = peerId in connectedPeers
 
     var input by rememberSaveable { mutableStateOf("") }
@@ -205,9 +207,16 @@ fun ChatScreen(
                         ) {
                             IconButton(
                                 onClick = { fileLauncher.launch(arrayOf("*/*")) },
-                                enabled = isConnected
+                                enabled = isConnected,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
                             ) {
-                                Icon(Icons.Filled.AttachFile, contentDescription = stringResource(R.string.attachment))
+                                Icon(
+                                    Icons.Filled.AttachFile,
+                                    contentDescription = stringResource(R.string.attachment),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
                             OutlinedTextField(
                                 value = input,
@@ -227,9 +236,16 @@ fun ChatScreen(
                                         input = ""
                                     }
                                 },
-                                enabled = isConnected && input.isNotBlank()
+                                enabled = isConnected && input.isNotBlank(),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.send))
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = stringResource(R.string.send),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
                         }
                     }
@@ -268,8 +284,14 @@ fun ChatScreen(
                                 progress = progress[message.id],
                                 showStatus = showStatus,
                                 onOpenFile = {
-                                    if (message.type == "FILE") {
-                                        openFile(context, message.filePath, message.mimeType)
+                                    if (message.type == "FILE" &&
+                                        !openFile(context, message.filePath, message.mimeType)
+                                    ) {
+                                        Toast.makeText(
+                                            context,
+                                            fileOpenFailed,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 },
                                 onCancel = { vm.cancelSend(message.id) },
