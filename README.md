@@ -44,7 +44,7 @@ APK будет в `app/build/outputs/apk/debug/app-debug.apk`.
 Kotlin, Jetpack Compose (Material 3), Room, Coroutines/Flow, Bluetooth RFCOMM, Coil.
 
 ### Автор
-**ste4n1**
+**ste4n1**  https://t.me/ste4n_1
 
 ### Лицензия
 [MIT](LICENSE)
@@ -91,7 +91,7 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 Kotlin, Jetpack Compose (Material 3), Room, Coroutines/Flow, Bluetooth RFCOMM, Coil.
 
 ### Author
-**ste4n1**
+**ste4n1**  https://t.me/ste4n_1
 
 ### License
 [MIT](LICENSE)
